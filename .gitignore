@@ -4,5 +4,8 @@
 # Logs generados en tiempo de ejecución.
 /log/
 
+#Para desarrollo en JetBrains
+/.idea/
+
 # Config local con secretos (credenciales de BD y clave). La plantilla .example SÍ se versiona.
 /core/config.local.php
