@@ -6,13 +6,8 @@
  * Time: 18:03
  */
 //Gestión de Acceso a Vistas
-//Declaracion de Variables Globales
-require 'core/globals.php';
-//Inicio de Sesion
-session_start();
-//Levantamiento del Log para registro de errores
-require 'app/models/Log.php';
-$log = new Log();
+//Arranque común: config, autoloader, librerías, manejo de errores, sesión y $log.
+require 'core/bootstrap.php';
 //Variable para definir el tipo de acceso
 $_SESSION['acceso'] = 1;
 //Variable para correr o no el sistema si no está en mantenimiento
@@ -48,19 +43,8 @@ if($correr){
         //Para Mostrar o No Errores (Comentado Para SI, Descomentado Para NO)
         //error_reporting(E_ALL);
 
-        //LLamada a archivo gestor de base de datos
-        require 'core/Database.php';
-        //LLamada a archivo para limpieza y validación de datos
-        require 'app/models/Validar.php';
-        //Inicio clase para la encriptacion de contenido
-        require 'app/models/Encriptar.php';
-        //Levantamiento de registro de roles y permisos para acceso a vistas
-        require 'app/models/Menui.php';
-        //Inicio Clase Para Generación de Menus Dinamicos
-        require 'app/models/Navbar.php';
-        //Inicio Clase Para Actualización de Datos de Usuario
-        require 'app/models/Sesion.php';
-
+        //Las clases (Database, Validar, Encriptar, Menui, Navbar, Sesion) se cargan
+        //solas vía core/autoload.php en cuanto se instancian más abajo.
         //Inicialización de clases necesarias en Index
         $menui = new Menui();
         $encriptar = new Encriptar();
@@ -68,8 +52,6 @@ if($correr){
 
         //Para manejo de caracteres
         header("Content-Type: text/html;charset=utf-8");
-        //Especificar el manejo de errores personalizados
-        set_error_handler("exception_error_handler");
 
         //Verificación de Variables de Sesion y Cookies
         require 'core/session.php';

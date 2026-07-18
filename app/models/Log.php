@@ -6,6 +6,13 @@
  * Time: 12:08
  */
 class Log{
+    //Rutas y datos del registro. Se calculan en el constructor en cada instancia.
+    private $ruta;            //Carpeta del año:  log/2026
+    private $ruta_completa;   //Carpeta del mes:  log/2026/06
+    private $nombre_archivo;  //Prefijo del archivo: log-
+    private $fecha;           //Fecha actual: 2026-06-20
+    private $hora;            //Hora actual: 14:30:00
+    private $ip;              //IP de origen del registro
     public function __construct()
     {
         //Ruta de carpeta(Con año)
@@ -19,7 +26,7 @@ class Log{
         //Hora actual
         $this->hora     = date('H:i:s');
         //IP donde se registra el error
-        $this->ip       = ($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : 0;
+        $this->ip       = $_SERVER['REMOTE_ADDR'] ?? 0;
     }
 
     //Funcion para insertar texto en el archivo de log del dia

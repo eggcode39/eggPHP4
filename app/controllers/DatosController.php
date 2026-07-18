@@ -5,36 +5,26 @@
  * Date: 29/10/2020
  * Time: 10:18
  */
-require 'app/models/Usuario.php';
-require 'app/models/Rol.php';
-require 'app/models/Archivo.php';
-class DatosController{
+//Las clases Usuario, Rol y Archivo se cargan solas vía core/autoload.php.
+class DatosController extends BaseController{
     //Variables especificas del controlador
     private $usuario;
     private $rol;
     private $archivo;
-    //Variables fijas para cada llamada al controlador
-    private $sesion;
-    private $encriptar;
-    private $log;
-    private $validar;
+    //log, encriptar, sesion y validar vienen de BaseController.
     public function __construct()
     {
+        parent::__construct();
         //Instancias especificas del controlador
         $this->usuario = new Usuario();
         $this->rol = new Rol();
         $this->archivo = new Archivo();
-        //Instancias fijas para cada llamada al controlador
-        $this->encriptar = new Encriptar();
-        $this->log = new Log();
-        $this->sesion = new Sesion();
-        $this->validar = new Validar();
     }
     //Funciones
     //Funcion para cambiar la contraseña del usuario
     public function guardar_contrasenha(){
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -48,21 +38,21 @@ class DatosController{
                 $result = $this->usuario->guardar_contrasenha($this->encriptar->desencriptar($_SESSION['c_u'],_FULL_KEY_), password_hash($_POST['contrasenha'], PASSWORD_BCRYPT));
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message)));
+        $this->responder($result, $message);
     }
     //Funcion para guardar datos del usuario
     public function guardar_usuario(){
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -79,12 +69,12 @@ class DatosController{
                 //Validamos la duplicidad del $_POST['rol_nombre'], para evitar duplicados
                 if($this->usuario->validar_nickname_edicion(str_replace(" ", "",$_POST['usuario_nicknamep']), $this->encriptar->desencriptar($_SESSION['c_u'],_FULL_KEY_))){
                     //Código 3: Controlador duplicado
-                    $result = 3;
+                    $result = ResultCode::DUPLICADO;
                     $message = "Ya existe un usuario con este nickname registrado";
                 } else {
                     if($this->usuario->validar_correo_edicion($_POST['usuario_emailp'], $this->encriptar->desencriptar($_SESSION['c_u'],_FULL_KEY_))){
                         //Código 3: Controlador duplicado
-                        $result = 4;
+                        $result = ResultCode::CORREO_DUPLICADO;
                         $message = "Ya existe un usuario con este correo registrado";
                     } else {
                         //Ingresamos los datos a cambiar en el modelo
@@ -115,21 +105,21 @@ class DatosController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message)));
+        $this->responder($result, $message);
     }
     //Funcion para guardar datos de la persona
     public function guardar_datos(){
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -155,15 +145,15 @@ class DatosController{
                 $result = $this->usuario->guardar_persona($model);
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message)));
+        $this->responder($result, $message);
     }
 }

@@ -11,6 +11,7 @@
 <head>
     <title><?=_TITLE_;?> - Login</title>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="<?= htmlspecialchars($_SESSION['csrf'] ?? '', ENT_QUOTES) ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" href="<?=_SERVER_ . _ICON_;?>"/>
     <!--Estilos de CSS-->

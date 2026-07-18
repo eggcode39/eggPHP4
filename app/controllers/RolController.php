@@ -5,27 +5,20 @@
  * Date: 24/10/2020
  * Time: 10:25
  */
-require 'app/models/Rol.php';
-require 'app/models/Menu.php';
-class RolController{
+//Las clases Rol y Menu se cargan solas vía core/autoload.php.
+class RolController extends BaseController{
     //Variables especificas del controlador
     private $rol;
     private $menu;
-    //Variables fijas para cada llamada al controlador
-    private $sesion;
-    private $encriptar;
-    private $log;
-    private $validar;
+    //Navbar: sólo se instancia dentro de las vistas que arman el menú lateral
+    private $nav;
+    //log, encriptar, sesion y validar vienen de BaseController.
     public function __construct()
     {
+        parent::__construct();
         //Instancias especificas del controlador
         $this->rol = new Rol();
         $this->menu = new Menu();
-        //Instancias fijas para cada llamada al controlador
-        $this->encriptar = new Encriptar();
-        $this->log = new Log();
-        $this->sesion = new Sesion();
-        $this->validar = new Validar();
     }
     //Vistas/Opciones
     //Vista de Inicio de La Gestión de Menús
@@ -72,7 +65,7 @@ class RolController{
         //Array donde vamos a almacenar los cambios, en caso hagamos alguno
         $rol = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -98,7 +91,7 @@ class RolController{
                 //Validamos la duplicidad del $_POST['rol_nombre'], para evitar duplicados
                 if($validar_duplicados){
                     //Código 3: Controlador duplicado
-                    $result = 3;
+                    $result = ResultCode::DUPLICADO;
                     $message = "Ya existe un rol registrado con este nombre";
                 } else {
                     $model->rol_nombre = $_POST['rol_nombre'];
@@ -106,7 +99,7 @@ class RolController{
                     $model->rol_estado = $_POST['rol_estado'];
                     //Guardamos el menú y recibimos el resultado
                     $result = $this->rol->guardar_rol($model);
-                    if($result == 1){
+                    if($result == ResultCode::OK){
                         //Validamos si result es igual a 1 y si esta declarado el id_menu,
                         //para devolver los datos que fueron editados
                         if(!empty($_POST['id_rol'])){
@@ -121,21 +114,21 @@ class RolController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message, "rol" => $rol)));
+        $this->responder($result, $message, ['rol' => $rol]);
     }
     //Sirve para gestionar el acceso entre el rol y el menú
     public function gestionar_acceso_rol(){
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app o web
         $message = 'OK';
         try{
@@ -163,15 +156,15 @@ class RolController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message)));
+        $this->responder($result, $message);
     }
 }

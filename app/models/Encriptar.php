@@ -13,6 +13,9 @@ class Encriptar{
     //Funcion que se encarga de ENCRIPTAR el texto entrante
     public function encriptar($string, $key) {
         $result = '';
+        //Un valor null se trata como cadena vacía: evita el deprecation de strlen(null)
+        //en PHP 8.1+ cuando se cifra un campo opcional vacío (ej. apellido materno, email).
+        $string = (string)$string;
         //Recorremos todo el string recibido
         for($i=0; $i < strlen($string); $i++) {
             //Extraemos el caracter del string que vamos a encriptar
@@ -51,33 +54,6 @@ class Encriptar{
         //Devolvemos la cadena obtenida
         return $result;
     }
-    //Encriptacion triple de datos para creacion de tokens de usuarios
-    public function encriptacion_triple($contrasenha, $usuario, $fecha){
-        //Hacemos una encriptacion de la contraseña
-        //Unimos la contraseña encriptada con el usuario
-        //Encriptamos la contraseña con el código del usuario
-        //Me achoré y lo hice en una linea
-        return $this->encriptar($usuario . '|' . $this->encriptar(password_hash($contrasenha, PASSWORD_BCRYPT), $fecha), _FULL_KEY_);
-    }
-    //Desencriptacion triple de datos para creacion de tokens de usuarios
-    public function desencriptacion_triple($hash){
-        try{
-            //Desencriptamos el hash, lo cual nos debe devolver un array.
-            $hash = explode("|", $this->desencriptar($hash, _FULL_KEY_));
-            //Validamos que $hash sea un array, caso contrario devolvemos falso
-            if(is_array($hash)){
-                //Obtenemos el valor entero del indice 0 y si es incorrecto, devolvemos $hash = false
-                $int = intval($hash[0]);
-                if(!is_int($int) || $int === 0){
-                    $hash = false;
-                }
-            } else {
-                $hash = false;
-            }
-        } catch (Exception $e){
-            //Entra aquí si ocurre un error con la desencriptacion y retorna el valor de falso
-            $hash = false;
-        }
-        return $hash;
-    }
+    //Las funciones de "encriptación triple" para tokens se eliminaron (C4):
+    //el token de la app ahora es opaco y vive en la tabla `tokens` (ver Token.php).
 }

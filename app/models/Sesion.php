@@ -5,45 +5,24 @@
  * Date: 10/10/2020
  * Time: 0:46
  */
-class Sesion{
-    private $pdo;
-    private $log;
+class Sesion extends BaseModel{
     private $encriptar;
 
     public function __construct()
     {
-        $this->pdo = Database::getConnection();
-        $this->log = new Log();
+        parent::__construct();          //pdo + log (de BaseModel)
         $this->encriptar = new Encriptar();
     }
-    //Obtiene datos del usuario actual consultado
+    //Obtiene datos del usuario actual consultado. Devuelve el objeto, o null si no existe/falla.
     public function obtener_informacion($id_usuario){
-        try{
-            $sql = 'select u.id_usuario, u.id_persona, u.usuario_contrasenha, u.usuario_creacion , u.usuario_nickname, u.usuario_imagen, u.usuario_email, u.usuario_estado, p.persona_nombre, p.persona_apellido_paterno, p.persona_apellido_materno, p.persona_nacimiento, p.persona_telefono, u.id_rol, r.rol_nombre from usuarios u inner join personas p on u.id_persona = p.id_persona inner join roles r on r.id_rol = u.id_rol where u.id_usuario = ? and u.usuario_estado = 1 limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$id_usuario]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = false;
-        }
-        return $result;
+        return $this->consultarUno('select u.id_usuario, u.id_persona, u.usuario_contrasenha, u.usuario_creacion , u.usuario_nickname, u.usuario_imagen, u.usuario_email, u.usuario_estado, p.persona_nombre, p.persona_apellido_paterno, p.persona_apellido_materno, p.persona_nacimiento, p.persona_telefono, u.id_rol, r.rol_nombre from usuarios u inner join personas p on u.id_persona = p.id_persona inner join roles r on r.id_rol = u.id_rol where u.id_usuario = ? and u.usuario_estado = 1 limit 1', [$id_usuario]);
     }
-    //Obtiene datos del usuario segun el usuario_nickname enviado
+    //Obtiene datos del usuario segun el usuario_nickname enviado. Devuelve el objeto, o null.
     public function consultar_usuario($usuario_nickname){
-        try{
-            $sql = 'select u.id_usuario, u.id_persona, u.usuario_contrasenha, u.usuario_creacion , u.usuario_nickname, u.usuario_imagen, u.usuario_estado, u.usuario_email, p.persona_nombre, p.persona_apellido_paterno, p.persona_apellido_materno, p.persona_nacimiento, p.persona_telefono, u.id_rol, r.rol_nombre from usuarios u inner join personas p on u.id_persona = p.id_persona inner join roles r on u.id_rol = r.id_rol where u.usuario_nickname = ? and usuario_estado = 1 limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$usuario_nickname]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = false;
-        }
-        return $result;
+        return $this->consultarUno('select u.id_usuario, u.id_persona, u.usuario_contrasenha, u.usuario_creacion , u.usuario_nickname, u.usuario_imagen, u.usuario_estado, u.usuario_email, p.persona_nombre, p.persona_apellido_paterno, p.persona_apellido_materno, p.persona_nacimiento, p.persona_telefono, u.id_rol, r.rol_nombre from usuarios u inner join personas p on u.id_persona = p.id_persona inner join roles r on u.id_rol = r.id_rol where u.usuario_nickname = ? and usuario_estado = 1 limit 1', [$usuario_nickname]);
     }
     //Actualizar la variable $_SESSION del usuario en su sesion local
-    public function generar_sesion($usuario, $uso_cookies = false){
+    public function generar_sesion($usuario){
         //Si $user trae datos, actualiza las variables de sesión
         $_SESSION['c_u'] = $this->encriptar->encriptar($usuario->id_usuario,_FULL_KEY_);
         $_SESSION['c_p'] = $this->encriptar->encriptar($usuario->id_persona,_FULL_KEY_);
@@ -58,27 +37,13 @@ class Sesion{
         $_SESSION['p_t'] = $this->encriptar->encriptar($usuario->persona_telefono,_FULL_KEY_);
         $_SESSION['ru'] = $this->encriptar->encriptar($usuario->id_rol,_FULL_KEY_);
         $_SESSION['rn'] = $this->encriptar->encriptar($usuario->rol_nombre,_FULL_KEY_);
-        $_SESSION['tn'] = $this->encriptar->encriptacion_triple($usuario->usuario_contrasenha, $usuario->id_usuario, $usuario->usuario_creacion);
-        if($uso_cookies){
-            setcookie('c_u', $this->encriptar->encriptar($usuario->id_user,_FULL_KEY_), time() + _TIEMPO_COOKIE, "/; samesite=strict");
-        }
+        //(El token de la app ya no se guarda en sesión: se genera aparte con Token::crear_token y la web no lo usa.)
+        //Sin cookie "recordarme": era falsificable (C1) y se quitó. Aquí también vivía el bug #8 (id_user).
     }
-    //Guarda el último inicio de sesión del usuario
+    //Guarda el último inicio de sesión del usuario. Devuelve true/false.
     public function ultimo_logueo($id_usuario){
-        try{
-            $fecha = date("Y-m-d H:i:s");
-            $sql = 'update usuarios set usuario_ultimo_login = ? where id_usuario = ?';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([
-                $fecha,
-                $id_usuario
-            ]);
-            $result = true;
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = false;
-        }
-        return $result;
+        $fecha = date("Y-m-d H:i:s");
+        return $this->ejecutar('update usuarios set usuario_ultimo_login = ? where id_usuario = ?', [$fecha, $id_usuario]);
     }
     //Cierra la sesión local del usuario
     public function cerrar_sesion(){
@@ -95,9 +60,6 @@ class Sesion{
         unset($_SESSION['p_t']);
         unset($_SESSION['ru']);
         unset($_SESSION['rn']);
-        unset($_SESSION['tn']);
-
-        //setcookie('c_u', '1', time() - _TIEMPO_COOKIE, "/; samesite=strict");
         session_destroy();
         session_start();
     }

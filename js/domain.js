@@ -1,6 +1,14 @@
-var urlweb = "http://127.0.0.1/eggPHP3/";
-var ruta_web = "http://127.0.0.1/eggPHP3/";
-//var ruta_web = "http://localhost/eggPHP3/";
+var urlweb = "http://127.0.0.1/eggPHP4/";
+var ruta_web = "http://127.0.0.1/eggPHP4/";
+//var ruta_web = "http://localhost/eggPHP4/";
+
+// CSRF: adjunta el token (leído del <meta>) a la cabecera de TODAS las peticiones ajax.
+// El servidor (api.php) lo valida en los POST del navegador. La app móvil (token) está exenta.
+$.ajaxSetup({
+    headers: {
+        'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content') || ''
+    }
+});
 
 //Función que hizo Carlitos que no sé bien para que sirve pero la dejo ahí por si las moscas
 function getParameterByName(name) {

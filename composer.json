@@ -1,0 +1,7 @@
+{
+    "name": "eggcode/eggphp4",
+    "description": "Framework MVC propio. Composer se usa SOLO para librerías de terceros; las clases del proyecto las carga core/autoload.php.",
+    "require": {
+        "php": ">=8.2"
+    }
+}

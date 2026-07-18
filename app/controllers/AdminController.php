@@ -5,19 +5,13 @@
  * Date: 12/10/2020
  * Time: 17:28
  */
-class AdminController{
-    //Variables fijas para cada llamada al controlador
-    private $sesion;
-    private $encriptar;
-    private $log;
-    private $validar;
+class AdminController extends BaseController{
+    //Navbar: sólo se instancia dentro de las vistas que arman el menú lateral
+    private $nav;
+    //log, encriptar, sesion y validar vienen de BaseController.
     public function __construct()
     {
-        //Instancias fijas para cada llamada al controlador
-        $this->encriptar = new Encriptar();
-        $this->log = new Log();
-        $this->sesion = new Sesion();
-        $this->validar = new Validar();
+        parent::__construct();
     }
     //Vistas/Opciones
     //Vista de acceso al panel de inicio

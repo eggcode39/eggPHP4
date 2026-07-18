@@ -6,13 +6,8 @@
  * Time: 18:03
  */
 //Gestión de Acceso a WebServices
-//Declaracion de Variables Globales
-require 'core/globals.php';
-//Levantamiento del Log para registro de errores
-require 'app/models/Log.php';
-$log = new Log();
-//Inicio de Sesion
-session_start();
+//Arranque común: config, autoloader, librerías, manejo de errores, sesión y $log.
+require 'core/bootstrap.php';
 //Variable para definir el tipo de acceso
 $_SESSION['acceso'] = 0;
 //Variable para correr o no el sistema si no está en mantenimiento
@@ -40,19 +35,8 @@ if($correr){
         //Para Mostrar o No Errores (Comentado Para SI, Descomentado Para NO)
         //error_reporting(E_ALL);
 
-        //LLamada a archivo gestor de base de datos
-        require 'core/Database.php';
-        //LLamada a archivo para limpieza y validación de datos
-        require 'app/models/Validar.php';
-        //Inicio clase para la encriptacion de contenido
-        require 'app/models/Encriptar.php';
-        //Inicio clase para la encriptacion de contenido
-        require 'app/models/Token.php';
-        //Levantamiento de registro de roles y permisos para acceso a vistas
-        require 'app/models/Menui.php';
-        //Inicio Clase Para Actualización de Datos de Usuario
-        require 'app/models/Sesion.php';
-
+        //Las clases (Database, Validar, Encriptar, Token, Menui, Sesion) se cargan
+        //solas vía core/autoload.php en cuanto se instancian más abajo.
         //Inicialización de clases necesarias en Index
         $token = new Token();
         $menui = new Menui();
@@ -60,18 +44,24 @@ if($correr){
 
         //Para manejo de caracteres
         header("Content-Type: text/html;charset=utf-8");
-        //Especificar el manejo de errores personalizados
-        set_error_handler("exception_error_handler");
         //Para Permitir CORS
         header('Access-Control-Allow-Origin: *');
         header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept");
         header('Access-Control-Allow-Methods: GET, POST');
-        //Declarar el uso de manejo de Error con la Función que declaramos
-        set_error_handler("exception_error_handler");
         if(isset($_SESSION['web']) && $_SESSION['web'] == true){
             //Verificación de Variables de Sesion y Cookies
             $sesion = new Sesion();
             require 'core/session.php';
+        }
+        //CSRF: los POST del navegador deben traer el token de sesión en la cabecera X-CSRF-Token.
+        //La app móvil se autentica con $_POST['app'] + token y queda exenta de esta comprobación.
+        if($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST['app'])){
+            $csrf_enviado = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+            if(empty($_SESSION['csrf']) || !hash_equals($_SESSION['csrf'], $csrf_enviado)){
+                $log->insertar('CSRF token inválido o ausente', 'api|csrf');
+                echo json_encode(array("result" => array("code" => 2, "message" => 'Token de seguridad inválido. Recargá la página.')));
+                exit;
+            }
         }
         //Inicio de Código de Verificación de Permisos
 

@@ -6,20 +6,9 @@
  * Time: 17:28
  */
 
-class LoginController{
-    //Variables fijas para cada llamada al controlador
-    private $log;
-    private $sesion;
-    private $encriptar;
-    private $validar;
-    public function __construct()
-    {
-        //Instancias fijas para cada llamada al controlador
-        $this->log = new Log();
-        $this->sesion = new Sesion();
-        $this->encriptar = new Encriptar();
-        $this->validar = new Validar();
-    }
+class LoginController extends BaseController{
+    //log, sesion, encriptar y validar vienen de BaseController.
+    //No necesita constructor propio: hereda el de BaseController.
     //Vistas/Opciones
     //Vista de acceso al login
     public function inicio(){
@@ -31,7 +20,7 @@ class LoginController{
         //Array donde irán los datos del usuario en caso de que el inicio de sesión sea desde una app
         $usuario = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -64,38 +53,34 @@ class LoginController{
                                 "p_m" => $usuario->persona_apellido_materno,
                                 "ru" => $usuario->id_rol,
                                 "rn" => $usuario->rol_nombre,
-                                "tn" => $this->encriptar->encriptacion_triple($usuario->usuario_contrasenha, $usuario->id_usuario, $usuario->usuario_creacion)
+                                "tn" => (new Token())->crear_token($usuario->id_usuario)
                             );
                         } else {
-                            //Validamos si el usuario seleccionó la opción de recordar contraseña
-                            if(isset($_POST['recordar']) && $_POST['recordar'] == "true"){
-                                //Generamos la sesión del usuario usando cookies
-                                $this->sesion->generar_sesion($usuario, true);
-                            } else {
-                                //Generamos la sesión del usuario sin usar cookies
-                                $this->sesion->generar_sesion($usuario);
-                            }
+                            //Sesión web: regeneramos el ID al autenticar para cerrar session fixation.
+                            session_regenerate_id(true);
+                            //Generamos la sesión del usuario. Sin cookie "recordarme": era falsificable (C1) y se quitó.
+                            $this->sesion->generar_sesion($usuario);
                         }
                         //Devolvemos 1 para indicar que todo salió bien
-                        $result = 1;
+                        $result = ResultCode::OK;
                     } else {
                         //Código 3: Usuario o contraseña incorrectos
                         $usuario = [];
-                        $result = 3;
+                        $result = ResultCode::CREDENCIALES_INVALIDAS;
                         $message = "Usuario o contraseña incorrectos";
                     }
                 } else {
                     //Código 3: Usuario o contraseña incorrectos
                     $usuario = [];
-                    $result = 3;
+                    $result = ResultCode::CREDENCIALES_INVALIDAS;
                     $message = "Usuario o contraseña incorrectos";
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();

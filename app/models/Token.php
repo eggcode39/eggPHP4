@@ -4,115 +4,58 @@
  * User: CESARJOSE39
  * Date: 14/10/2020
  * Time: 11:19
+ *
+ * Tokens de acceso para la API (app móvil).
+ * Modelo: token opaco aleatorio. En la BD guardamos su sha256 (no el token en
+ * claro); la app guarda el token en claro. Validar = buscar el hash y que no
+ * esté vencido. Revocable borrando la fila. Sin cifrado casero.
  */
-class Token{
-    private $pdo;
-    private $log;
+class Token extends BaseModel{
+    //Días que dura un token antes de vencer.
+    const DIAS_VALIDEZ = 30;
     private $encriptar;
-    function __construct()
+
+    public function __construct()
     {
-        $this->log = new Log();
-        $this->pdo = Database::getConnection();
+        parent::__construct();          //pdo + log (de BaseModel)
         $this->encriptar = new Encriptar();
     }
-    //Funcion para validar si el token es valido
-    public function validar_token($token){
-        try{
-            //Desencriptamos el token para obtener el codigo de usuario y el hash de la contraseña
-            $simple_token = $this->encriptar->desencriptacion_triple($token);
-            if(!$simple_token){
-                $result = false;
-            } else {
-                //Obtenemos los datos del usuario en base a su id
-                $datos_usuario = $this->obtener_datos_usuario($simple_token[0]);
-                if(!isset($datos_usuario->usuario_estado)){
-                    $result = false;
-                } else {
-                    //Desencriptamos la contraseña del usuario usando la fecha de creacion
-                    //$original_pass = $this->obtener_contrasenha($simple_token[0]);
-                    $hash = $this->encriptar->desencriptar($simple_token[1], $datos_usuario->usuario_creacion);
-                    //Verificamos el password
-                    if(password_verify($datos_usuario->usuario_contrasenha, $hash)){
-                        //Si es correcto, creamos la variable de sesion a usar
-                        $_SESSION['c_u'] = $this->encriptar->encriptar($simple_token[0],_FULL_KEY_);
-                        $_SESSION['s_'] = $this->encriptar->encriptar($datos_usuario->usuario_estado,_FULL_KEY_);
-                        $_SESSION['ru'] = $this->encriptar->encriptar($datos_usuario->id_rol,_FULL_KEY_);
-                        $result = true;
-                    } else {
-                        $result = false;
-                    }
-                }
-            }
 
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = false;
-        }
-        return $result;
+    //Crea un token para el usuario: guarda su hash y devuelve el token EN CLARO
+    //(que se le entrega a la app). Devuelve false si no se pudo guardar.
+    public function crear_token($id_usuario){
+        $token = bin2hex(random_bytes(32)); //64 caracteres hex, alta entropía
+        $ok = $this->ejecutar(
+            'insert into tokens (id_usuario, token_hash, token_creacion, token_expira) values (?,?,?,?)',
+            [
+                $id_usuario,
+                hash('sha256', $token),
+                date('Y-m-d H:i:s'),
+                date('Y-m-d H:i:s', strtotime('+' . self::DIAS_VALIDEZ . ' days'))
+            ]
+        );
+        return $ok ? $token : false;
     }
-    //Funcion para obtener fecha usuario
-    function obtener_fecha_usuario($id_usuario){
-        try{
-            $sql = 'select usuario_creacion from usuarios where id_usuario = ? limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$id_usuario]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = '1995-01-01';
+
+    //Valida un token: lo busca por su hash y que no esté vencido. Si es válido,
+    //arma las variables de sesión que api.php espera y devuelve true.
+    public function validar_token($token){
+        $fila = $this->consultarUno(
+            'select t.id_usuario, u.id_rol, u.usuario_estado from tokens t inner join usuarios u on t.id_usuario = u.id_usuario where t.token_hash = ? and t.token_expira > ? limit 1',
+            [hash('sha256', (string)$token), date('Y-m-d H:i:s')]
+        );
+        if($fila === null){
+            return false;
         }
-        return $result->usuario_creacion;
+        //api.php lee estas variables (cifradas como el resto de la sesión) tras validar.
+        $_SESSION['c_u'] = $this->encriptar->encriptar($fila->id_usuario, _FULL_KEY_);
+        $_SESSION['s_']  = $this->encriptar->encriptar($fila->usuario_estado, _FULL_KEY_);
+        $_SESSION['ru']  = $this->encriptar->encriptar($fila->id_rol, _FULL_KEY_);
+        return true;
     }
-    //Funcion para obtener datos del usuario
-    function obtener_datos_usuario($id_usuario){
-        try{
-            $sql = 'select usuario_creacion, id_rol, usuario_contrasenha, usuario_estado from usuarios where id_usuario = ? limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$id_usuario]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = [];
-        }
-        return $result;
-    }
-    //Funcion para obtener rol del usuario
-    function obtener_rol_usuario($id_usuario){
-        try{
-            $sql = 'select id_rol from usuarios where id_usuario = ? limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$id_usuario]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = 0;
-        }
-        return $result->id_rol;
-    }
-    //Funcion para obtener estado del usuario
-    function obtener_estado_usuario($id_usuario){
-        try{
-            $sql = 'select usuario_estado from usuarios where id_usuario = ? limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$id_usuario]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = 0;
-        }
-        return $result->usuario_estado;
-    }
-    //Funcion para obtener pass
-    function obtener_contrasenha($id_usuario){
-        try{
-            $sql = 'select usuario_contrasenha from usuarios where id_usuario = ? limit 1';
-            $stm = $this->pdo->prepare($sql);
-            $stm->execute([$id_usuario]);
-            $result = $stm->fetch();
-        } catch (Exception $e){
-            $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
-            $result = '';
-        }
-        return $result->usuario_contrasenha;
+
+    //Revoca un token (logout de la app). Devuelve true/false.
+    public function eliminar_token($token){
+        return $this->ejecutar('delete from tokens where token_hash = ?', [hash('sha256', (string)$token)]);
     }
 }

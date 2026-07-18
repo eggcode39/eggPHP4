@@ -5,27 +5,20 @@
  * Date: 19/10/2020
  * Time: 19:54
  */
-require 'app/models/Menu.php';
-require 'app/models/Rol.php';
-class MenuController{
+//Las clases Menu y Rol se cargan solas vía core/autoload.php.
+class MenuController extends BaseController{
     //Variables especificas del controlador
     private $menu;
     private $rol;
-    //Variables fijas para cada llamada al controlador
-    private $sesion;
-    private $encriptar;
-    private $log;
-    private $validar;
+    //Navbar: sólo se instancia dentro de las vistas que arman el menú lateral
+    private $nav;
+    //log, encriptar, sesion y validar vienen de BaseController.
     public function __construct()
     {
+        parent::__construct();
         //Instancias especificas del controlador
         $this->menu = new Menu();
         $this->rol = new Rol();
-        //Instancias fijas para cada llamada al controlador
-        $this->encriptar = new Encriptar();
-        $this->log = new Log();
-        $this->sesion = new Sesion();
-        $this->validar = new Validar();
     }
     //Vistas/Opciones
     //Vista de Inicio de La Gestión de Menús
@@ -163,7 +156,7 @@ class MenuController{
         //Array donde vamos a almacenar los cambios, en caso hagamos alguno
         $menu = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -192,7 +185,7 @@ class MenuController{
                 //Validamos la duplicidad del $_POST['menu_controlador'], para evitar duplicados
                 if($validar_duplicados){
                     //Código 3: Controlador duplicado
-                    $result = 3;
+                    $result = ResultCode::DUPLICADO;
                     $message = "Ya existe un menú con ese controlador registrado";
                 } else {
                     $model->menu_nombre = $_POST['menu_nombre'];
@@ -203,7 +196,7 @@ class MenuController{
                     $model->menu_estado = $_POST['menu_estado'];
                     //Guardamos el menú y recibimos el resultado
                     $result = $this->menu->guardar_menu($model);
-                    if($result == 1){
+                    if($result == ResultCode::OK){
                         //Validamos si result es igual a 1 y si esta declarado el id_menu,
                         //para devolver los datos que fueron editados
                         if(!empty($_POST['id_menu'])){
@@ -221,23 +214,23 @@ class MenuController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message, "menu" => $menu)));
+        $this->responder($result, $message, ['menu' => $menu]);
     }
     //Funcion para guardar un nuevo menú creado
     public function guardar_opcion(){
         //Array donde vamos a almacenar los cambios, en caso hagamos alguno
         $opcion = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -269,7 +262,7 @@ class MenuController{
                 //Validamos la duplicidad del $_POST['menu_controlador'], para evitar duplicados
                 if($validar_duplicados){
                     //Código 3: Controlador duplicado
-                    $result = 3;
+                    $result = ResultCode::DUPLICADO;
                     $message = "Ya existe una opción con ese menu registrado";
                 } else {
                     $model->id_menu = $_POST['id_menu'];
@@ -281,7 +274,7 @@ class MenuController{
                     $model->opcion_estado = $_POST['opcion_estado'];
                     //Guardamos el menú y recibimos el resultado
                     $result = $this->menu->guardar_opcion($model);
-                    if($result == 1){
+                    if($result == ResultCode::OK){
                         //Validamos si result es igual a 1 y si esta declarado el id_menu,
                         //para devolver los datos que fueron editados
                         if(!empty($_POST['id_opcion'])){
@@ -299,23 +292,23 @@ class MenuController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message, "opcion" => $opcion)));
+        $this->responder($result, $message, ['opcion' => $opcion]);
     }
     //Funcion para guardar un nuevo menú creado
     public function configurar_relacion(){
         //Array donde vamos a almacenar los cambios, en caso hagamos alguno
         $menu = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app o web
         $message = 'OK';
         try{
@@ -343,23 +336,23 @@ class MenuController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message, "menu" => $menu)));
+        $this->responder($result, $message, ['menu' => $menu]);
     }
     //Sirve para agregar el permiso a la opción
     public function agregar_permiso(){
         //Array donde vamos a almacenar los cambios, en caso hagamos alguno
         $permiso = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -372,57 +365,39 @@ class MenuController{
             if($ok_data){
                 //Creamos el modelo y ingresamos los datos a guardar
                 $model = new Menu();
-                //Si $_POST['id_opcion'] tiene datos, quiere decir que se va a editar una opción.
-                //Caso contrario, procedemos a validar el duplicado de funciones por opción
-                /*if(!empty($_POST['id_permiso'])){
-                    $model->id_opcion = $_POST['id_permiso'];
-                    $validar_duplicados = false;
-                } else {
-                    $validar_duplicados = $this->menu->buscar_permiso_opcion($_POST['id_opcion'], $_POST['permiso_accion']);
-                }*/
+                //Validamos el duplicado de la función/acción por opción.
                 $validar_duplicados = $this->menu->buscar_permiso_opcion($_POST['id_opcion'], $_POST['permiso_accion']);
                 //Validamos la duplicidad del $_POST['permiso_accion'], para evitar duplicados
                 if($validar_duplicados){
                     //Código 3: Controlador duplicado
-                    $result = 3;
+                    $result = ResultCode::DUPLICADO;
                     $message = "Ya existe un permiso en la opción consultada";
                 } else {
                     $model->id_opcion = $_POST['id_opcion'];
                     $model->permiso_accion = strtolower(str_replace(" ", "",$_POST['permiso_accion']));
                     $model->permiso_estado = $_POST['permiso_estado'];
-                    //Guardamos el menú y recibimos el resultado
+                    //Guardamos el permiso y recibimos el resultado
                     $result = $this->menu->guardar_permiso($model);
-                    /*if($result == 1){
-                        //Validamos si result es igual a 1 y si esta declarado el id_menu,
-                        //para devolver los datos que fueron editados
-                        if(!empty($_POST['id_permiso'])){
-                            $permiso = array(
-                                "id_permiso" => $_POST['id_permiso'],
-                                "permiso_accion" => $_POST['permiso_accion'],
-                                "permiso_estado" => $_POST['permiso_estado']
-                            );
-                        }
-                    }*/
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message, "permiso" => $permiso)));
+        $this->responder($result, $message, ['permiso' => $permiso]);
     }
     //Se usa para eliminar un permiso asignado a una opción
     public function eliminar_permiso(){
     //Array donde vamos a almacenar los cambios, en caso hagamos alguno
         $permiso = [];
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app
         $message = 'OK';
         try{
@@ -436,21 +411,21 @@ class MenuController{
                 $result = $this->menu->eliminar_permiso($_POST['id_permiso']);
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message, "permiso" => $permiso)));
+        $this->responder($result, $message, ['permiso' => $permiso]);
     }
     //Funcion para configurar las restriccion de una opción a un rol en especifico
     public function configurar_acceso(){
         //Código de error general
-        $result = 2;
+        $result = ResultCode::ERROR;
         //Mensaje a devolver en caso de hacer consulta por app o web
         $message = 'OK';
         try{
@@ -478,15 +453,15 @@ class MenuController{
                 }
             } else {
                 //Código 6: Integridad de datos erronea
-                $result = 6;
+                $result = ResultCode::DATOS_INVALIDOS;
                 $message = "Integridad de datos fallida. Algún parametro se está enviando mal";
             }
-        } catch (Exception $e){
+        } catch (Throwable $e){
             //Registramos el error generado y devolvemos el mensaje enviado por PHP
             $this->log->insertar($e->getMessage(), get_class($this).'|'.__FUNCTION__);
             $message = $e->getMessage();
         }
         //Retornamos el json
-        echo json_encode(array("result" => array("code" => $result, "message" => $message)));
+        $this->responder($result, $message);
     }
 }

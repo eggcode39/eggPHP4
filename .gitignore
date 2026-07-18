@@ -1,0 +1,8 @@
+# Librerías de terceros instaladas por Composer. Se regeneran con "composer install".
+/vendor/
+
+# Logs generados en tiempo de ejecución.
+/log/
+
+# Config local con secretos (credenciales de BD y clave). La plantilla .example SÍ se versiona.
+/core/config.local.php

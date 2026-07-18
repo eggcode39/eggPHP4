@@ -50,11 +50,9 @@ class Validar{
                                 return $this->validar_numeros($_GET[$parametro],$vacio,$tamanho_maximo);
                         }
                     } else {
-                        if($vacio){
-                            return true;
-                        } else {
-                            return false;
-                        }
+                        //Parámetro ausente: requerido (vacio=true) => inválido; opcional => válido.
+                        //(Antes estaba invertido: un requerido ausente pasaba la validación. Bug #1.)
+                        return !$vacio;
                     }
                     break;
                 case 'POST':
@@ -84,11 +82,9 @@ class Validar{
                                 return $this->validar_numeros($_POST[$parametro],$vacio,$tamanho_maximo);
                         }
                     } else {
-                        if($vacio){
-                            return true;
-                        } else {
-                            return false;
-                        }
+                        //Parámetro ausente: requerido (vacio=true) => inválido; opcional => válido.
+                        //(Antes estaba invertido: un requerido ausente pasaba la validación. Bug #1.)
+                        return !$vacio;
                     }
                     break;
                 case 'FILES':
@@ -97,11 +93,9 @@ class Validar{
                         //($tipo_validacion se usa en caso de que el $tipo_parametro tenga varias validaciones, como en el caso de fecha)
                         return $this->validar_archivo($parametro, $vacio, $tipo_validacion);
                     } else {
-                        if($vacio){
-                            return true;
-                        } else {
-                            return false;
-                        }
+                        //Parámetro ausente: requerido (vacio=true) => inválido; opcional => válido.
+                        //(Antes estaba invertido: un requerido ausente pasaba la validación. Bug #1.)
+                        return !$vacio;
                     }
                 default:
                     return false;

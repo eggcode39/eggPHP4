@@ -180,8 +180,13 @@
         <?php
         //Variable usada como correlativo
         $raioz = 1;
+        //Rol del usuario actual (se usa para restricciones y para las opciones).
+        $rol_actual = $this->encriptar->desencriptar($_SESSION['ru'],_FULL_KEY_);
         //Listamos las restricciones de opciones para el rol del usuario
-        $restricciones = $this->nav->listar_restricciones($this->encriptar->desencriptar($_SESSION['ru'],_FULL_KEY_));
+        $restricciones = $this->nav->listar_restricciones($rol_actual);
+        //Todas las opciones de todos los menús del rol en UNA consulta (antes era N+1),
+        //agrupadas por id_menu para buscarlas en memoria dentro del loop.
+        $opciones_por_menu = $this->nav->listar_opciones_por_rol($rol_actual);
         foreach ($navs as $nav){
             //Clases necesarias para mostrar en el navbar
             $nav_link = "nav-link collapsed";
@@ -209,7 +214,7 @@
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Opciones:</h6>
                         <?php
-                        $option = $this->nav->listar_opciones($nav->id_menu);
+                        $option = $opciones_por_menu[$nav->id_menu] ?? [];
                         foreach ($option as $o){
                             //Validamos si la opcion no tiene restriccion por rol
                             $mostrar = true;
