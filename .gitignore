@@ -6,6 +6,7 @@
 
 #Para desarrollo en JetBrains
 /.idea/
+/media/
 
 # Config local con secretos (credenciales de BD y clave). La plantilla .example SÍ se versiona.
 /core/config.local.php
